@@ -26,7 +26,8 @@ def peer_func(id):
     peer = {
         "id": ID,
         "port": MyPORT,
-        "public_key": verify_key.export_key(format='OpenSSH')}
+        "public_key": verify_key.export_key(format='OpenSSH'),
+        "random_numbers_list": []}
     res = requests.post(endpoint, json=peer)
     print(str(id) + "Done")
     peer["list"] = requests.get(endpoint).json()
@@ -35,23 +36,28 @@ def peer_func(id):
     for i in range(n):
         ports.append(peer["list"][i]["port"])
 
-    context = zmq.Context()
-    for port in ports:
-        if port.__eq__(MyPORT):
-            continue
-        else:
-            num_sender = context.socket(zmq.PUSH)
-            num_sender.bind("tcp://127.0.0.1:" + str(MyPORT))
-            num_sender.connect("tcp://127.0.0.1:" + str(port))
+    for k in range(n):
+        context = zmq.Context()
+        num_sender = context.socket(zmq.PUSH)
+        num_sender.bind("tcp://127.0.0.1:" + str(MyPORT))
+        num_sender.connect("tcp://127.0.0.1:" + str(ports[(id + k) % n]))
 
-            num_receiver = context.socket(zmq.PULL)
-            num_receiver.bind("tcp://127.0.0.1:" + str(port))
-            num_receiver.connect("tcp://127.0.0.1:" + str(MyPORT))
+        context2 = zmq.Context()
+        num_receiver = context2.socket(zmq.PULL)
+        num_receiver.bind("tcp://127.0.0.1:" + str(ports[(id + k) % n]))
+        num_receiver.connect("tcp://127.0.0.1:" + str(MyPORT))
 
-            num_sender.send_string(str(peer["random_number"]))
-            res = num_receiver.recv_string()
-            num_receiver.close()
-            num_sender.close()
+        num_sender.send_string(str(peer["random_number"]))
+        res = num_receiver.recv_string()
+        num_sender.unbind("tcp://127.0.0.1:" + str(MyPORT))
+        num_receiver.unbind("tcp://127.0.0.1:" + str(ports[(id + k) % n]))
+        time.sleep(0.5)
+        if(id==0):
+            print(str(k+1) +" out of " + str(n) + " complete" )
+
+
+
+
 
 
 if __name__ == "__main__":
@@ -63,3 +69,4 @@ if __name__ == "__main__":
 
     for proc in procs:
         proc.join()
+
