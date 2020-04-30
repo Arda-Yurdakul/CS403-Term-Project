@@ -33,6 +33,7 @@ def peer_func(id):
     peer["list"] = requests.get(endpoint).json()
     peer["random_number"] = random.getrandbits(256)
     ports = []
+    messages = []
     for i in range(n):
         ports.append(peer["list"][i]["port"])
 
@@ -49,11 +50,14 @@ def peer_func(id):
 
         num_sender.send_string(str(peer["random_number"]))
         res = num_receiver.recv_string()
+        messages.append(res)
         num_sender.unbind("tcp://127.0.0.1:" + str(MyPORT))
         num_receiver.unbind("tcp://127.0.0.1:" + str(ports[(id + k) % n]))
-        time.sleep(0.5)
+        time.sleep(1)
         if(id==0):
             print(str(k+1) +" out of " + str(n) + " complete" )
+            if k+1 == n:
+                print(messages)
 
 
 
