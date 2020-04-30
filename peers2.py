@@ -29,35 +29,39 @@ def peer_func(id):
         "public_key": verify_key.export_key(format='OpenSSH'),
         "random_numbers_list": []}
     res = requests.post(endpoint, json=peer)
-    print(str(id) + "Done")
+
     peer["list"] = requests.get(endpoint).json()
     peer["random_number"] = random.getrandbits(256)
     ports = []
     messages = []
     for i in range(n):
         ports.append(peer["list"][i]["port"])
-
+    
     for k in range(n):
         context = zmq.Context()
-        num_sender = context.socket(zmq.PUSH)
+        num_sender = context.socket(zmq.PUB)
         num_sender.bind("tcp://127.0.0.1:" + str(MyPORT))
-        num_sender.connect("tcp://127.0.0.1:" + str(ports[(id + k) % n]))
+        time.sleep(1)
+        num_sender.send_string(str(peer["random_number"]))
+        if k == 0:
+            print("published to: ", str(MyPORT))
 
         context2 = zmq.Context()
-        num_receiver = context2.socket(zmq.PULL)
-        num_receiver.bind("tcp://127.0.0.1:" + str(ports[(id + k) % n]))
-        num_receiver.connect("tcp://127.0.0.1:" + str(MyPORT))
+        num_receiver = context2.socket(zmq.SUB)
+        num_receiver.connect("tcp://127.0.0.1:" + str(ports[(id + k) % n]))
 
-        num_sender.send_string(str(peer["random_number"]))
+        num_receiver.subscribe("")
         res = num_receiver.recv_string()
         messages.append(res)
-        num_sender.unbind("tcp://127.0.0.1:" + str(MyPORT))
-        num_receiver.unbind("tcp://127.0.0.1:" + str(ports[(id + k) % n]))
         time.sleep(1)
-        if(id==0):
-            print(str(k+1) +" out of " + str(n) + " complete" )
-            if k+1 == n:
-                print(messages)
+
+        if id == 0:
+            print("port:", str(ports[(id + k) % n]), "msg:", res )
+    
+    
+
+
+
 
 
 
