@@ -36,11 +36,11 @@ def peer_func(id):
     messages = []
     for i in range(n):
         ports.append(peer["list"][i]["port"])
-    
+
     context = zmq.Context()
     num_sender = context.socket(zmq.PUB)
     num_sender.bind("tcp://127.0.0.1:" + str(MyPORT))
-    
+
     time.sleep(1)
 
     contexts = []
@@ -48,21 +48,50 @@ def peer_func(id):
         context2 = zmq.Context()
         num_receiver = context2.socket(zmq.SUB)
         num_receiver.connect("tcp://127.0.0.1:" + str(ports[(id + k) % n]))
+        time.sleep(0.5)
         num_receiver.subscribe("")
         contexts.append(num_receiver)
-       
+
     time.sleep(1)
 
     num_sender.send_string(str(peer["random_number"]))
-    
-    time.sleep(1)
+
+
 
     for k in range(n):
-        res = contexts[k].recv_string()
+        res = int(contexts[k].recv_string())
         messages.append(res)
-    
-    if id == 0 or id == 18:
-        print(messages)
+
+
+    selection = 0
+
+    for message in messages:
+        selection = selection ^ message
+        time.sleep(0.01)
+
+
+    d = SHA3_256.new(selection.to_bytes(32, byteorder='big'))
+    for k in range(t - 1):
+        d = SHA3_256.new(d.digest())
+
+    selection = int.from_bytes(d.digest(), "big") % n
+    file = ""
+    for message in messages:
+        file += str(message) + "\n"
+    file += str(selection) + "\n"
+
+
+    time.sleep(1)
+    signer = DSS.new(sign_key, 'fips-186-3')
+    h = SHA3_256.new(file.encode('utf-8'))
+    signature = signer.sign(h)
+    file += str(int.from_bytes(signature, "big")) + "\n"
+    file += verify_key.export_key(format='OpenSSH')
+
+    time.sleep(1)
+    file_writer = open("sample_election_" + str(id) + ".log", "w")
+    file_writer.write(file)
+    file_writer.close()
 
 
 if __name__ == "__main__":
@@ -74,4 +103,3 @@ if __name__ == "__main__":
 
     for proc in procs:
         proc.join()
-
