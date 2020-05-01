@@ -37,35 +37,32 @@ def peer_func(id):
     for i in range(n):
         ports.append(peer["list"][i]["port"])
     
-    for k in range(n):
-        context = zmq.Context()
-        num_sender = context.socket(zmq.PUB)
-        num_sender.bind("tcp://127.0.0.1:" + str(MyPORT))
-        time.sleep(1)
-        num_sender.send_string(str(peer["random_number"]))
-        if k == 0:
-            print("published to: ", str(MyPORT))
+    context = zmq.Context()
+    num_sender = context.socket(zmq.PUB)
+    num_sender.bind("tcp://127.0.0.1:" + str(MyPORT))
+    
+    time.sleep(1)
 
+    contexts = []
+    for k in range(n):
         context2 = zmq.Context()
         num_receiver = context2.socket(zmq.SUB)
         num_receiver.connect("tcp://127.0.0.1:" + str(ports[(id + k) % n]))
-
         num_receiver.subscribe("")
-        res = num_receiver.recv_string()
+        contexts.append(num_receiver)
+       
+    time.sleep(1)
+
+    num_sender.send_string(str(peer["random_number"]))
+    
+    time.sleep(1)
+
+    for k in range(n):
+        res = contexts[k].recv_string()
         messages.append(res)
-        time.sleep(1)
-
-        if id == 0:
-            print("port:", str(ports[(id + k) % n]), "msg:", res )
     
-    
-
-
-
-
-
-
-
+    if id == 0 or id == 18:
+        print(messages)
 
 
 if __name__ == "__main__":
