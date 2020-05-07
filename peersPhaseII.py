@@ -15,8 +15,8 @@ from Pyro4.util import json
 
 n = int(sys.argv[2])
 t = int(sys.argv[4])
-ell = int(sys.argv[6])
-r = int(sys.argv[8])
+ell = int(sys.argv[8])
+r = int(sys.argv[6])
 
 endpoint = "http://localhost:5000/peers"
 tolerance = (n - 1)//3
