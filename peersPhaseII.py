@@ -129,11 +129,14 @@ def peer_func(id):
         h_prev = SHA3_256.new("".encode('utf-8'))
 
         for k in range(r):
-            print("hey")
+            receiver_socket = context.socket(zmq.PULL)
+            receiver_socket.bind("tcp://127.0.0.1:" + str(MyPORT))
+            print("a")
             block = ""
             for m in range(ell):
                 tau = "".join([random.choice(string.ascii_letters + string.digits) for _ in range(64)])
                 block += (tau + "\n")
+            print("b")
             h = SHA3_256.new(block.encode('utf-8') + h_prev.digest())
             signature = signer.sign(h)
             signature = {'pid': pid, 'signature': str(int.from_bytes(signature, "big")), "block": block}
@@ -144,12 +147,12 @@ def peer_func(id):
                     sender_socket.send_json(signature)
                     time.sleep(0.5)
                     sender_socket.disconnect("tcp://127.0.0.1:" + str(p["port"]))
-
+            print("c")
             block_signatures = [json.dumps({"pid": pid, "signature": signature["signature"]})]
-            receiver_socket = context.socket(zmq.PULL)
-            receiver_socket.bind("tcp://127.0.0.1:" + str(MyPORT))
+            
             time.sleep(0.5)
 
+            print("d")
             for l in range(n - 1):
                 try:
                     new_signature = receiver_socket.recv_json()
